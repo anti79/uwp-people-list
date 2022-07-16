@@ -9,9 +9,8 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
 	>
-	<Page.DataContext>
-		<vm:MainViewModel/>
-	</Page.DataContext>
+	
+	
 	<Grid Padding="30">
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition></ColumnDefinition>

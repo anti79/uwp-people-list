@@ -23,10 +23,18 @@ namespace UWPApp.Model
 		}
 		public static bool Validate(Person person)
 		{
-			Regex nameRegex = new Regex("[A-Za-z]+");
-			if (person.FirstName.Length < 1 || person.FirstName.Length > 15) return false;
-			if (!nameRegex.IsMatch(person.FirstName) || !nameRegex.IsMatch(person.LastName)) return false;
-			if (person.Age < 0 || person.Age > 116) return false;
+			const string nameRegexString = "[A-Za-z]+";
+			Regex nameRegex = new Regex(nameRegexString);
+			if (person.FirstName.Length < 1 || person.FirstName.Length > 15) {
+				return false;
+			};
+			if (!nameRegex.IsMatch(person.FirstName) || !nameRegex.IsMatch(person.LastName))
+			{
+				return false;
+			}
+			if (person.Age < 0 || person.Age > 116) {
+				return false;
+			};
 			return true;
 		}
 	}

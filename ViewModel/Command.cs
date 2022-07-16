@@ -21,7 +21,9 @@ namespace UWPApp.ViewModel
         public Command(Action execute, Func<bool> canExecute)
         {
             if (execute is null)
+            {
                 throw new ArgumentNullException(nameof(execute));
+            }
             _execute = execute;
             _canExecute = canExecute;
         }
