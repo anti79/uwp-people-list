@@ -22,10 +22,10 @@ namespace UWPApp.ViewModel
 		Person editedPerson;
 
 		readonly IView view;
-
+		bool formVisibility = false;
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		enum EditingStatus
+		public enum EditingStatus
 		{
 			None,
 			AddingNew,
@@ -56,6 +56,7 @@ namespace UWPApp.ViewModel
 			{
 				editedPerson = value;
 				RaisePropertyChanged();
+				RaisePropertyChanged(nameof(FormVisibility));
 			}
 		}
 		public int SelectedIndex { get; set; }
@@ -63,8 +64,24 @@ namespace UWPApp.ViewModel
 		{
 			get
 			{
-				if (editingStatus!=EditingStatus.None) return true;
-				return false;
+				return (EditStatus != EditingStatus.None);
+			}
+			set
+			{
+				formVisibility = value;
+			}
+		}
+		public EditingStatus EditStatus
+		{
+			get
+			{
+				return editingStatus;
+			}
+			set
+			{
+				editingStatus = value;
+				RaisePropertyChanged();
+				RaisePropertyChanged(nameof(FormVisibility));
 			}
 		}
 
@@ -86,7 +103,6 @@ namespace UWPApp.ViewModel
 				if (await view.DisplayConfirmationDialog("Delete the entry?"))
 				{
 					bool res = People.Remove(SelectedPerson);
-					RaisePropertyChanged(nameof(People));
 					UpdateModel();
 				}
 				else
@@ -99,44 +115,39 @@ namespace UWPApp.ViewModel
 			StartEditingCommand = new Command(() => {
 				if (SelectedPerson != null)
 				{
-					editedPerson = selectedPerson;
-					editingStatus = EditingStatus.EditingExisting;
-					RaisePropertyChanged(nameof(EditedPerson));
-					RaisePropertyChanged(nameof(FormVisibility));
+					EditedPerson = selectedPerson;
+					EditStatus = EditingStatus.EditingExisting;
 				}
 
 			});
 
 			StartAddingCommand = new Command(() =>
 			{
-				editingStatus = EditingStatus.AddingNew;
+				EditStatus = EditingStatus.AddingNew;
 				EditedPerson = new Person() { FirstName="",LastName="" };
-				RaisePropertyChanged(nameof(FormVisibility));
 			});
 
 			CancelEditCommand = new Command(() =>
 			{
-				editingStatus = EditingStatus.None;
-				RaisePropertyChanged(nameof(FormVisibility));
+				EditStatus = EditingStatus.None;
 			});
 
 			SaveButtonCommand = new Command(() =>
 			{
-				if (editingStatus!=EditingStatus.None)
+				if (EditStatus!=EditingStatus.None)
 				{
 					if (Data.Validate(EditedPerson))
 					{
-						if (editingStatus==EditingStatus.EditingExisting)
+						if (EditStatus==EditingStatus.EditingExisting)
 						{
 							People[SelectedIndex] = EditedPerson;
+							//RaisePropertyChanged(nameof(People));
 						}
-						else if (editingStatus==EditingStatus.AddingNew)
+						else if (EditStatus==EditingStatus.AddingNew)
 						{
 							People.Add(EditedPerson);
 						}
-						editingStatus = EditingStatus.None;
-						RaisePropertyChanged(nameof(People));
-						RaisePropertyChanged(nameof(FormVisibility));
+						EditStatus = EditingStatus.None;
 						UpdateModel();
 					}
 					else
