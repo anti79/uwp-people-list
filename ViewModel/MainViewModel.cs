@@ -25,6 +25,19 @@ namespace UWPApp.ViewModel
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
+
+		ICommand saveButtonCommand;
+		ICommand startEditingCommand;
+		ICommand startAddingCommand;
+		ICommand cancelEditCommand;
+		ICommand deleteCommand;
+
+		public ICommand SaveButtonCommand { get { return GetSaveButtonCommand(); } }
+		public ICommand StartEditingCommand { get { return GetStartEditingCommand(); } }
+		public ICommand StartAddingCommand { get { return GetStartAddingCommand(); } }
+		public ICommand CancelEditCommand { get { return GetCancelEditCommand(); } }
+		public ICommand DeleteCommand { get { return GetDeleteCommand(); } }
+
 		enum EditingStatus
 		{
 			None,
@@ -69,89 +82,120 @@ namespace UWPApp.ViewModel
 		}
 
 
-		public ICommand SaveButtonCommand { get; }
-		public ICommand StartEditingCommand { get; }
-		public ICommand StartAddingCommand { get; }
-		public ICommand CancelEditCommand { get; }
-		public ICommand DeleteCommand { get; set; }
+		
 
 		public MainViewModel(IView view)
 		{
 			People = new ObservableCollection<Person>(Data.People);
 			this.view = view;
-
-			DeleteCommand = new Command(async () =>
+		}
+		
+		ICommand GetStartAddingCommand()
+		{
+			if(startAddingCommand is null)
 			{
-				
-				if (await view.DisplayConfirmationDialog("Delete the entry?"))
+				startAddingCommand = new Command(() =>
 				{
-					bool res = People.Remove(SelectedPerson);
-					RaisePropertyChanged(nameof(People));
-					UpdateModel();
-				}
-				else
-				{
-					CancelEditCommand.Execute(null);
-				}
-
-			});
-
-			StartEditingCommand = new Command(() => {
-				if (SelectedPerson != null)
-				{
-					editedPerson = selectedPerson;
-					editingStatus = EditingStatus.EditingExisting;
-					RaisePropertyChanged(nameof(EditedPerson));
+					editingStatus = EditingStatus.AddingNew;
+					EditedPerson = new Person() { FirstName = "", LastName = "" };
 					RaisePropertyChanged(nameof(FormVisibility));
-				}
+				});
+			}
+			return startAddingCommand;
+		}
 
-			});
-
-			StartAddingCommand = new Command(() =>
+		ICommand GetStartEditingCommand()
+		{
+			if(startEditingCommand is null)
 			{
-				editingStatus = EditingStatus.AddingNew;
-				EditedPerson = new Person() { FirstName="",LastName="" };
-				RaisePropertyChanged(nameof(FormVisibility));
-			});
-
-			CancelEditCommand = new Command(() =>
-			{
-				editingStatus = EditingStatus.None;
-				RaisePropertyChanged(nameof(FormVisibility));
-			});
-
-			SaveButtonCommand = new Command(() =>
-			{
-				if (editingStatus!=EditingStatus.None)
-				{
-					if (Data.Validate(EditedPerson))
+				startEditingCommand = new Command(() => {
+					if (SelectedPerson != null)
 					{
-						if (editingStatus==EditingStatus.EditingExisting)
-						{
-							People[SelectedIndex] = EditedPerson;
-						}
-						else if (editingStatus==EditingStatus.AddingNew)
-						{
-							People.Add(EditedPerson);
-						}
-						editingStatus = EditingStatus.None;
-						RaisePropertyChanged(nameof(People));
+						editedPerson = selectedPerson;
+						editingStatus = EditingStatus.EditingExisting;
+						RaisePropertyChanged(nameof(EditedPerson));
 						RaisePropertyChanged(nameof(FormVisibility));
+					}
+
+				});
+			}
+			return startEditingCommand;
+		}
+
+		ICommand GetDeleteCommand()
+		{
+			if(deleteCommand is null)
+			{
+				deleteCommand = new Command(async () =>
+				{
+
+					if (await view.DisplayConfirmationDialog("Delete the entry?"))
+					{
+						bool res = People.Remove(SelectedPerson);
+						RaisePropertyChanged(nameof(People));
 						UpdateModel();
 					}
 					else
 					{
-						DisplayValidationError();
+						cancelEditCommand.Execute(null);
 					}
-				}
-			});
+
+				});
+			}
+			return deleteCommand;
 		}
-		
+		ICommand GetCancelEditCommand()
+		{
+			if(cancelEditCommand is null)
+			{
+				cancelEditCommand = new Command(() =>
+				{
+					editingStatus = EditingStatus.None;
+					RaisePropertyChanged(nameof(FormVisibility));
+				});
+			}
+			return cancelEditCommand;
+		}
+
+		ICommand GetSaveButtonCommand()
+		{
+			if(saveButtonCommand is null)
+			{
+				saveButtonCommand = new Command(() =>
+				{
+					if (editingStatus != EditingStatus.None)
+					{
+						if (Data.Validate(EditedPerson))
+						{
+							if (editingStatus == EditingStatus.EditingExisting)
+							{
+								People[SelectedIndex] = EditedPerson;
+							}
+							else if (editingStatus == EditingStatus.AddingNew)
+							{
+								People.Add(EditedPerson);
+							}
+							editingStatus = EditingStatus.None;
+							RaisePropertyChanged(nameof(People));
+							RaisePropertyChanged(nameof(FormVisibility));
+							UpdateModel();
+						}
+						else
+						{
+							DisplayValidationError();
+						}
+					}
+				});
+			}
+			return saveButtonCommand;
+		}
+
+
 
 		void DisplayValidationError()
 		{
 			view.DisplayInfoDialog("Invalid values. Name has to contain Latin latters only. Age must be between 0 and 116.");
-			CancelEditCommand.Execute(null);
+			GetCancelEditCommand().Execute(null);
 		}
 
 		void UpdateModel()
