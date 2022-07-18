@@ -25,6 +25,20 @@ namespace UWPApp.ViewModel
 		bool formVisibility = false;
 		public event PropertyChangedEventHandler PropertyChanged;
 
+
+		ICommand saveButtonCommand;
+		ICommand startEditingCommand;
+		ICommand startAddingCommand;
+		ICommand cancelEditCommand;
+		ICommand deleteCommand;
+
+		public ICommand SaveButtonCommand { get { return GetSaveButtonCommand(); } }
+		public ICommand StartEditingCommand { get { return GetStartEditingCommand(); } }
+		public ICommand StartAddingCommand { get { return GetStartAddingCommand(); } }
+		public ICommand CancelEditCommand { get { return GetCancelEditCommand(); } }
+		public ICommand DeleteCommand { get { return GetDeleteCommand(); } }
+
+		enum EditingStatus
 		public enum EditingStatus
 		{
 			None,
@@ -86,21 +100,19 @@ namespace UWPApp.ViewModel
 		}
 
 
-		public ICommand SaveButtonCommand { get; }
-		public ICommand StartEditingCommand { get; }
-		public ICommand StartAddingCommand { get; }
-		public ICommand CancelEditCommand { get; }
-		public ICommand DeleteCommand { get; set; }
+		
 
 		public MainViewModel(IView view)
 		{
 			People = new ObservableCollection<Person>(Data.People);
 			this.view = view;
-
-			DeleteCommand = new Command(async () =>
+		}
+		
+		ICommand GetStartAddingCommand()
+		{
+			if(startAddingCommand is null)
 			{
-				
-				if (await view.DisplayConfirmationDialog("Delete the entry?"))
+				startAddingCommand = new Command(() =>
 				{
 					bool res = People.Remove(SelectedPerson);
 					UpdateModel();
@@ -119,7 +131,17 @@ namespace UWPApp.ViewModel
 					EditStatus = EditingStatus.EditingExisting;
 				}
 
-			});
+				});
+			}
+			return startEditingCommand;
+		}
+
+		ICommand GetDeleteCommand()
+		{
+			if(deleteCommand is null)
+			{
+				deleteCommand = new Command(async () =>
+				{
 
 			StartAddingCommand = new Command(() =>
 			{
@@ -159,10 +181,11 @@ namespace UWPApp.ViewModel
 		}
 		
 
+
 		void DisplayValidationError()
 		{
 			view.DisplayInfoDialog("Invalid values. Name has to contain Latin latters only. Age must be between 0 and 116.");
-			CancelEditCommand.Execute(null);
+			GetCancelEditCommand().Execute(null);
 		}
 
 		void UpdateModel()
