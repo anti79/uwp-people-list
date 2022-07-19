@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -22,7 +22,7 @@ namespace UWPApp.ViewModel
 		Person editedPerson;
 
 		readonly IView view;
-		bool formVisibility = false;
+
 		public event PropertyChangedEventHandler PropertyChanged;
 
 
@@ -39,7 +39,6 @@ namespace UWPApp.ViewModel
 		public ICommand DeleteCommand { get { return GetDeleteCommand(); } }
 
 		enum EditingStatus
-		public enum EditingStatus
 		{
 			None,
 			AddingNew,
@@ -47,7 +46,19 @@ namespace UWPApp.ViewModel
 		}
 
 		EditingStatus editingStatus;
-
+		EditingStatus EditStatus
+		{
+			get
+			{
+				return editingStatus;
+			}
+			set
+			{
+				editingStatus = value;
+				RaisePropertyChanged();
+				RaisePropertyChanged("FormVisibility");
+			}
+		}
 		public Person SelectedPerson
 		{
 			get
@@ -70,7 +81,6 @@ namespace UWPApp.ViewModel
 			{
 				editedPerson = value;
 				RaisePropertyChanged();
-				RaisePropertyChanged(nameof(FormVisibility));
 			}
 		}
 		public int SelectedIndex { get; set; }
@@ -78,58 +88,46 @@ namespace UWPApp.ViewModel
 		{
 			get
 			{
-				return (EditStatus != EditingStatus.None);
+				return (editingStatus != EditingStatus.None);
 			}
-			set
-			{
-				formVisibility = value;
-			}
-		}
-		public EditingStatus EditStatus
-		{
-			get
-			{
-				return editingStatus;
-			}
-			set
-			{
-				editingStatus = value;
-				RaisePropertyChanged();
-				RaisePropertyChanged(nameof(FormVisibility));
-			}
+
 		}
 
 
-		
+
 
 		public MainViewModel(IView view)
 		{
 			People = new ObservableCollection<Person>(Data.People);
 			this.view = view;
 		}
-		
+
 		ICommand GetStartAddingCommand()
 		{
-			if(startAddingCommand is null)
+			if (startAddingCommand is null)
 			{
 				startAddingCommand = new Command(() =>
 				{
-					bool res = People.Remove(SelectedPerson);
-					UpdateModel();
-				}
-				else
-				{
-					CancelEditCommand.Execute(null);
-				}
+					EditStatus = EditingStatus.AddingNew;
+					EditedPerson = new Person() { FirstName = "", LastName = "" };
 
-			});
+				});
+			}
+			return startAddingCommand;
+		}
 
-			StartEditingCommand = new Command(() => {
-				if (SelectedPerson != null)
-				{
-					EditedPerson = selectedPerson;
-					EditStatus = EditingStatus.EditingExisting;
-				}
+		ICommand GetStartEditingCommand()
+		{
+			if (startEditingCommand is null)
+			{
+				startEditingCommand = new Command(() => {
+					if (SelectedPerson != null)
+					{
+						EditedPerson = SelectedPerson;
+						EditStatus = EditingStatus.EditingExisting;
+
+
+					}
 
 				});
 			}
@@ -138,48 +136,68 @@ namespace UWPApp.ViewModel
 
 		ICommand GetDeleteCommand()
 		{
-			if(deleteCommand is null)
+			if (deleteCommand is null)
 			{
 				deleteCommand = new Command(async () =>
 				{
 
-			StartAddingCommand = new Command(() =>
-			{
-				EditStatus = EditingStatus.AddingNew;
-				EditedPerson = new Person() { FirstName="",LastName="" };
-			});
-
-			CancelEditCommand = new Command(() =>
-			{
-				EditStatus = EditingStatus.None;
-			});
-
-			SaveButtonCommand = new Command(() =>
-			{
-				if (EditStatus!=EditingStatus.None)
-				{
-					if (Data.Validate(EditedPerson))
+					if (await view.DisplayConfirmationDialog("Delete the entry?"))
 					{
-						if (EditStatus==EditingStatus.EditingExisting)
-						{
-							People[SelectedIndex] = EditedPerson;
-							//RaisePropertyChanged(nameof(People));
-						}
-						else if (EditStatus==EditingStatus.AddingNew)
-						{
-							People.Add(EditedPerson);
-						}
-						EditStatus = EditingStatus.None;
+						bool res = People.Remove(SelectedPerson);
 						UpdateModel();
 					}
 					else
 					{
-						DisplayValidationError();
+						cancelEditCommand.Execute(null);
 					}
-				}
-			});
+
+				});
+			}
+			return deleteCommand;
 		}
-		
+		ICommand GetCancelEditCommand()
+		{
+			if (cancelEditCommand is null)
+			{
+				cancelEditCommand = new Command(() =>
+				{
+					EditStatus = EditingStatus.None;
+				});
+			}
+			return cancelEditCommand;
+		}
+
+		ICommand GetSaveButtonCommand()
+		{
+			if (saveButtonCommand is null)
+			{
+				saveButtonCommand = new Command(() =>
+				{
+					if (EditStatus != EditingStatus.None)
+					{
+						if (Data.Validate(EditedPerson))
+						{
+							if (EditStatus == EditingStatus.EditingExisting)
+							{
+								People[SelectedIndex] = EditedPerson;
+							}
+							else if (EditStatus == EditingStatus.AddingNew)
+							{
+								People.Add(EditedPerson);
+							}
+							EditStatus = EditingStatus.None;
+							UpdateModel();
+						}
+						else
+						{
+							DisplayValidationError();
+						}
+					}
+				});
+			}
+			return saveButtonCommand;
+		}
+
 
 
 		void DisplayValidationError()
@@ -192,8 +210,8 @@ namespace UWPApp.ViewModel
 		{
 			Data.People = this.People.ToList();
 		}
-		
-		void RaisePropertyChanged([CallerMemberName] string propertyName=null)
+
+		void RaisePropertyChanged([CallerMemberName] string propertyName = null)
 		{
 			if (PropertyChanged != null)
 			{
