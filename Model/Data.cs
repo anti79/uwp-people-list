@@ -25,14 +25,10 @@ namespace UWPApp.Model
 		{
 			const string nameRegexString = "[A-Za-z]+";
 			Regex nameRegex = new Regex(nameRegexString);
-			if (person.FirstName.Length < 1 || person.FirstName.Length > 15) {
-				return false;
-			};
-			if (!nameRegex.IsMatch(person.FirstName) || !nameRegex.IsMatch(person.LastName))
-			{
-				return false;
-			}
-			if (person.Age < 0 || person.Age > 116) {
+			if ((person.FirstName.Length < 1 || person.FirstName.Length > 15) ||
+				(!nameRegex.IsMatch(person.FirstName) || !nameRegex.IsMatch(person.LastName)) ||
+				(person.Age < 0 || person.Age > 116)
+				) {
 				return false;
 			};
 			return true;
